@@ -12,7 +12,7 @@ env:
 
 jobs:
   build:
-    name: Build ${{ matrix.arch }}-${{ github.event.inputs.version || 'auto' }}
+    name: Build ${{ matrix.arch }} mihomo
     runs-on: ubuntu-24.04
     defaults:
       run:
