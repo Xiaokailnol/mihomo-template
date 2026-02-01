@@ -6,8 +6,10 @@ on:
     types: [release]
 
 env:
-  REPO_URL: https://github.com/MetaCubeX/mihomo
-  REPO_BRANCH: Alpha
+  MIHOMO_URL: https://github.com/MetaCubeX/mihomo
+  METACUBEXD_URL: https://github.com/MetaCubeX/metacubexd
+  MIHOMO_BRANCH: Alpha
+  METACUBEXD_BRANCH: main
   BUILD_TAGS: -extldflags --static
 
 jobs:
@@ -66,8 +68,12 @@ jobs:
       working-directory: /builder
       id: clone
       run: |
-        git clone $REPO_URL -b $REPO_BRANCH mihomo
-        cd mihomo && mkdir dist
+        if [ "${{ matrix.arch }}" == "metacubexd" ]; then
+          git clone $METACUBEXD_URL -b $METACUBEXD_BRANCH metacubexd
+        else
+          git clone $MIHOMO_URL -b $MIHOMO_BRANCH mihomo
+        fi
+        cd mihomo && mkdir output
         COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
         echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
         COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
