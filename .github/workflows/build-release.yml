@@ -23,6 +23,7 @@ jobs:
         arch:
           - amd64
           - arm64
+#          - metacubexd
 
     steps:
     - name: Checkout
