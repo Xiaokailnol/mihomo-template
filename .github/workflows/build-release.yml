@@ -1,0 +1,161 @@
+name: Build Mihomo Releases
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [release]
+
+env:
+  REPO_URL: https://github.com/MetaCubeX/mihomo
+  REPO_BRANCH: Alpha
+  BUILD_TAGS: -extldflags --static
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}-${{ github.event.inputs.version || 'auto' }}
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - amd64
+          - arm64
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Setup environment and calculate version
+      run: |
+        sudo timedatectl set-timezone 'Asia/Shanghai'
+        git config --global user.name 'actions'
+        git config --global user.email 'action@github.com'
+        echo build_dir="/builder" >> "$GITHUB_ENV"
+        latest_tag=$(curl -s "https://api.github.com/repos/Xiaokailnol/mihomo-actions-builder/releases/latest" \
+          | jq -r '.tag_name')
+        if [ "$latest_tag" = "null" ] || [ -z "$latest_tag" ]; then
+          latest_tag="1.0.0"
+        fi
+        IFS='.' read -r major minor patch <<< "$latest_tag"
+        patch=$((patch+1))
+        if [ $patch -gt 10 ]; then
+          patch=0
+          minor=$((minor+1))
+        fi
+        if [ $minor -gt 10 ]; then
+          minor=0
+          major=$((major+1))
+        fi
+        VERSION="${major}.${minor}.${patch}"
+        echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+        echo "Build version: $VERSION"
+
+    - name: Show system info
+      uses: Xiaokailnol/actions@show-system
+
+    - name: Free disk space
+      uses: Xiaokailnol/actions@free-disk
+      with:
+        build-mount-path: /builder
+
+    - name: Build System Setup
+      uses: Xiaokailnol/actions@mihomo-build-setup
+
+    - name: Setup Go 1.25.6
+      uses: actions/setup-go@v6
+      with:
+        go-version: ^1.25.6
+
+    - name: Clone Source Code
+      working-directory: /builder
+      id: clone
+      run: |
+        git clone $REPO_URL -b $REPO_BRANCH mihomo
+        cd mihomo && mkdir dist
+        COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
+        echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
+        COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
+        echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+        COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
+        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+        COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
+        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+        echo "BUILDTIME=$(date)" >> $GITHUB_ENV
+        echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: Compile Packages
+      id: compile
+      working-directory: /builder
+      run: |
+        cd mihomo
+        go env
+        go build -v -trimpath -o output/mihomo \
+          -tags "with_gvisor" \
+          -trimpath \
+          -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+        echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: Packages DEB
+      id: deb
+      working-directory: /builder
+      run: |
+        cd mihomo
+        fpm -s dir -t deb \
+          -n mihomo \
+          -v "$VERSION" \
+          -p "output/mihomo_${VERSION}_${{ matrix.arch }}.deb" \
+          --architecture ${{ matrix.arch }} \
+          output/mihomo=/usr/bin/mihomo
+        rm -rf $HOME/.gnupg
+        gpg --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}" --import <<EOF
+        ${{ secrets.GPG_KEY }}
+        EOF
+        echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: Package RPM
+      id: rpm
+      working-directory: /builder
+      run: |
+        cd mihomo
+        fpm -s dir -t rpm \
+          -n mihomo \
+          -v "$VERSION" \
+          -p "output/mihomo_${VERSION}_${{ matrix.arch }}.rpm" \
+          --architecture ${{ matrix.arch }} \
+          output/mihomo=/usr/bin/mihomo
+        echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: Package Pacman
+      id: pacman
+      working-directory: /builder
+      run: |
+        cd mihomo
+        fpm -s dir -t pacman \
+          -v "$VERSION" \
+          -p "output/mihomo-${VERSION}-${{ matrix.arch }}.pkg.tar.zst" \
+          --architecture ${{ matrix.arch }} \
+          output/mihomo=/usr/bin/mihomo
+        echo "status=success" >> ${GITHUB_OUTPUT}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mihomo_v${{ env.VERSION }}_${{ matrix.arch }}
+        path: ${{ env.build_dir }}/mihomo/output/*
+
+    - name: Create release
+      uses: ncipollo/release-action@v1
+      with:
+        name: v${{ env.VERSION }}
+        tag: v${{ env.VERSION }}
+        commit: master
+        allowUpdates: true
+        replacesArtifacts: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: |
+          ${{ env.build_dir }}/mihomo/output/*.deb
+          ${{ env.build_dir }}/mihomo/output/*.rpm
+          ${{ env.build_dir }}/mihomo/output/*.pkg.tar.zst
