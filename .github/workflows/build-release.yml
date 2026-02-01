@@ -145,6 +145,7 @@ jobs:
       run: |
         cd mihomo
         fpm -s dir -t pacman \
+          -n mihomo \
           -v "$VERSION" \
           -p "output/mihomo-${VERSION}-${{ matrix.arch }}.pkg.tar.zst" \
           --architecture ${{ matrix.arch }} \
