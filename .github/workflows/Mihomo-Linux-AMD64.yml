@@ -57,7 +57,7 @@ jobs:
       id: compile
       working-directory: /builder
       run: |
-        cd mihomo
+        cd mihomo && mkdir -p output
         go env
         GOOS=linux GOARCH=amd64 go build -v -tags "with_gvisor" -trimpath -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
 
