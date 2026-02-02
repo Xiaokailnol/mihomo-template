@@ -70,7 +70,7 @@ jobs:
         fpm -t deb \
           -v "$VERSION" \
           -p "output/mihomo-linux-${VERSION}-amd64.deb" \
-          --architecture ${{ matrix.jobs.debian }} \
+          --architecture amd64 \
           mihomo=/usr/bin/mihomo
         curl -Lo '/tmp/debsigs.diff' 'https://gitlab.com/debsigs/debsigs/-/commit/160138f5de1ec110376d3c807b60a37388bc7c90.diff'
         sudo patch /usr/bin/debsigs < '/tmp/debsigs.diff'
@@ -88,7 +88,7 @@ jobs:
         fpm -t rpm \
           -v "$VERSION" \
           -p "output/mihomo-linux-${VERSION}-amd64-${VERSION}.rpm" \
-          --architecture ${{ matrix.jobs.rpm }} \
+          --architecture x86_64 \
           mihomo=/usr/bin/mihomo
         cat > $HOME/.rpmmacros <<EOF
         %_gpg_name ${{ secrets.GPG_KEY_ID }}
@@ -107,7 +107,7 @@ jobs:
         fpm -t pacman \
           -v "$VERSION" \
           -p "output/mihomo-linux-${VERSION}-amd64-${VERSION}.pkg.tar.zst" \
-          --architecture ${{ matrix.jobs.pacman }} \
+          --architecture x86_64 \
           mihomo=/usr/bin/mihomo
 
     - name: Upload mihomo artifacts
