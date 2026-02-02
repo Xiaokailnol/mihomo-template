@@ -97,7 +97,7 @@ jobs:
         fpm -s dir -t pacman \
           -n mihomo \
           -v "$VERSION" \
-          -p "output/mihomo-linux-${VERSION}-amd64-${VERSION}.pkg.tar.zst" \
+          -p "output/mihomo-linux-${VERSION}-arm64-${VERSION}.pkg.tar.zst" \
           --architecture aarch64 \
           mihomo=/usr/bin/mihomo
 
