@@ -15,13 +15,17 @@ on:
       BUILD_TAGS:
         required: true
         type: string
-
+      BUILD_DIR:
+        required: true
+        type: string
+        
 env:
   VERSION: ${{inputs.VERSION}}
   MIHOMO_URL: ${{inputs.MIHOMO_URL}}
   MIHOMO_BRANCH: ${{inputs.MIHOMO_BRANCH}}
   BUILD_TAGS: ${{inputs.BUILD_TAGS}}
-  
+  BUILD_DIR: ${{inputs.BUILD_DIR}}
+
 jobs:
   setup:
     runs-on: ubuntu-24.04
