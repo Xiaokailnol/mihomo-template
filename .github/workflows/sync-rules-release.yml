@@ -1,0 +1,49 @@
+name: Sync Rules Release
+
+on:
+  schedule:
+    # 每天凌晨 2 点同步一次，可根据需要调整
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout 当前仓库
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Clone source repo (666OS/rules) 的 release 分支
+      - name: Clone rules repo
+        run: |
+          git clone --depth 1 --branch release https://github.com/666OS/rules.git tmp_rules
+
+      # 3. 创建 rule 文件夹并复制指定文件夹
+      - name: Copy folders
+        run: |
+          mkdir -p rule
+          cp -r tmp_rules/mihomo rule/
+          cp -r tmp_rules/singbox rule/
+          cp -r tmp_rules/surge rule/
+
+      # 4. 配置 Git 用户信息
+      - name: Set git config
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+      # 5. 添加、提交和推送变更
+      - name: Commit and push changes
+        run: |
+          git add rule
+          # 只有在有改动时才提交
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync rules from 666OS/rules release branch"
+            git push
+          else
+            echo "No changes detected"
+          fi
