@@ -104,7 +104,7 @@ jobs:
     - name: Upload mihomo artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: mihomo_linux_${{ env.VERSION }}
+        name: mihomo_linux_arm64_${{ env.VERSION }}
         path: ${{ env.BUILD_DIR }}/mihomo/output/*
 
     - name: Create mihomo release
