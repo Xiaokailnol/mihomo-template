@@ -1,0 +1,131 @@
+name: Mihomo Linux ARM64
+
+on:
+  workflow_call:
+    inputs:
+      VERSION:
+        required: true
+        type: string
+      MIHOMO_URL:
+        required: true
+        type: string
+      MIHOMO_BRANCH:
+        required: true
+        type: string
+      BUILD_TAGS:
+        required: true
+        type: string
+
+env:
+  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  VERSION: ${{inputs.VERSION}}
+  MIHOMO_URL: ${{inputs.MIHOMO_URL}}
+  MIHOMO_BRANCH: ${{inputs.MIHOMO_BRANCH}}
+  BUILD_TAGS: ${{inputs.BUILD_TAGS}}
+  
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Show system info
+      uses: Xiaokailnol/actions@show-system
+
+    - name: Free disk space
+      uses: Xiaokailnol/actions@free-disk
+      with:
+        build-mount-path: /builder
+
+    - name: Build System Setup
+      uses: Xiaokailnol/actions@mihomo-build-setup
+
+    - name: Clone Source Code
+      working-directory: /builder
+      id: clone
+      run: |
+        git clone $MIHOMO_URL -b $MIHOMO_BRANCH mihomo
+        echo "BUILDTIME=$(date)" >> $GITHUB_ENV
+
+    - name: Compile Packages
+      id: compile
+      working-directory: /builder
+      run: |
+        cd mihomo
+        go env
+        GOOS=linux GOARCH=arm64 go build -v -tags "with_gvisor" -trimpath -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+
+    - name: Packages DEB
+      id: deb
+      working-directory: /builder
+      run: |
+        cd mihomo
+        fpm -t deb \
+          -v "$VERSION" \
+          -p "output/mihomo-linux-${VERSION}-amd64.deb" \
+          --architecture arm64 \
+          mihomo=/usr/bin/mihomo
+        curl -Lo '/tmp/debsigs.diff' 'https://gitlab.com/debsigs/debsigs/-/commit/160138f5de1ec110376d3c807b60a37388bc7c90.diff'
+        sudo patch /usr/bin/debsigs < '/tmp/debsigs.diff'
+        rm -rf $HOME/.gnupg
+        gpg --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}" --import <<EOF
+        ${{ secrets.GPG_KEY }}
+        EOF
+        debsigs --sign=origin -k ${{ secrets.GPG_KEY_ID }} --gpgopts '--pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"' output/*.deb
+
+    - name: Package RPM
+      id: rpm
+      working-directory: /builder
+      run: |
+        cd mihomo
+        fpm -t rpm \
+          -v "$VERSION" \
+          -p "output/mihomo-linux-${VERSION}-amd64-${VERSION}.rpm" \
+          --architecture aarch64 \
+          mihomo=/usr/bin/mihomo
+        cat > $HOME/.rpmmacros <<EOF
+        %_gpg_name ${{ secrets.GPG_KEY_ID }}
+        %_gpg_sign_cmd_extra_args --pinentry-mode loopback --passphrase ${{ secrets.GPG_PASSPHRASE }}
+        EOF
+        gpg --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}" --import <<EOF
+        ${{ secrets.GPG_KEY }}
+        EOF
+        rpmsign --addsign output/*.rpm
+
+    - name: Package Pacman
+      id: pacman
+      working-directory: /builder
+      run: |
+        cd mihomo
+        fpm -t pacman \
+          -v "$VERSION" \
+          -p "output/mihomo-linux-${VERSION}-amd64-${VERSION}.pkg.tar.zst" \
+          --architecture aarch64 \
+          mihomo=/usr/bin/mihomo
+
+    - name: Upload mihomo artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mihomo_${{ env.VERSION }}_${{ matrix.arch }}
+        path: ${{ env.build_dir }}/mihomo/output/*
+
+    - name: Create mihomo release
+      uses: ncipollo/release-action@v1
+      with:
+        name: v${{ env.VERSION }}
+        tag: v${{ env.VERSION }}
+        commit: master
+        allowUpdates: true
+        replacesArtifacts: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: |
+          ${{ env.build_dir }}/mihomo/output/*.deb
+          ${{ env.build_dir }}/mihomo/output/*.rpm
+          ${{ env.build_dir }}/mihomo/output/*.pkg.tar.zst    
