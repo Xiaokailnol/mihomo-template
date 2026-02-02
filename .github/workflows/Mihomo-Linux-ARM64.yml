@@ -120,7 +120,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: mihomo_${{ env.VERSION }}_${{ matrix.arch }}
-        path: ${{ env.build_dir }}/mihomo/output/*
+        path: ${{ env.BUILD_DIR }}/mihomo/output/*
 
     - name: Create mihomo release
       uses: ncipollo/release-action@v1
@@ -132,6 +132,6 @@ jobs:
         replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: |
-          ${{ env.build_dir }}/mihomo/output/*.deb
-          ${{ env.build_dir }}/mihomo/output/*.rpm
-          ${{ env.build_dir }}/mihomo/output/*.pkg.tar.zst    
+          ${{ env.BUILD_DIR }}/mihomo/output/*.deb
+          ${{ env.BUILD_DIR }}/mihomo/output/*.rpm
+          ${{ env.BUILD_DIR }}/mihomo/output/*.pkg.tar.zst    
