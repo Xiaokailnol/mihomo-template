@@ -28,6 +28,7 @@ jobs:
               major=$((major + 1))
           fi
           VERSION="$major.$minor.$patch"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Build version: $VERSION"
 
   Mihomo-Linux-AMD64:
