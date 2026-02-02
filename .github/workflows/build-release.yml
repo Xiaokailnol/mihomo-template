@@ -34,11 +34,9 @@ jobs:
     - name: Setup environment and calculate version
       run: |
         sudo timedatectl set-timezone 'Asia/Shanghai'
-        git config --global user.name 'actions'
-        git config --global user.email 'action@github.com'
         echo build_dir="/builder" >> "$GITHUB_ENV"
         latest_tag=$(curl -s "https://api.github.com/repos/Xiaokailnol/mihomo-template/releases/latest" | jq -r '.tag_name // "1.0.0"')
-        latest_tag="${latest_tag#v}"  # 去掉前面的 v
+        latest_tag="${latest_tag#v}"
         IFS='.' read -r major minor patch <<< "$latest_tag"
         patch=$((patch + 1))
         if [ "$patch" -gt 10 ]; then
@@ -161,10 +159,25 @@ jobs:
       working-directory: /builder    
       run: |
         cd metacubexd
+        sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" package.json
         pnpm install
         NUXT_APP_BASE_URL='./' pnpm generate
         tar czvf compressed-dist.tgz -C .output/public .
-      
+
+    - name: Update Metacubexd version File
+      if: ${{ matrix.arch == 'metacubexd' }}
+      working-directory: /builder
+      id: file
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        for file in template/MihomoPro.yaml template/OneSmart.yaml template/OneSmartPro.yaml template/OneTouch.yaml; do
+            sed -i "s|^external-ui-url: .*|external-ui-url: https://github.com/Xiaokailnol/mihomo-template/releases/download/v$VERSION/compressed-dist.tgz|" "$file"
+        done
+        git add .
+        git commit -m "Metacubexd: bump to $VERSION"
+        git push
+          
     - name: Upload mihomo artifacts
       if: ${{ matrix.arch != 'metacubexd' }}
       uses: actions/upload-artifact@v4
