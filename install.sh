@@ -1,135 +1,116 @@
 #!/bin/sh
-set -e
 
-# ======================
-# 基础信息
-# ======================
-REPO_OWNER="Xiaokailnol"
-REPO_NAME="mihomo-template"
-BIN_NAME="mihomo"
-
-API_LATEST="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-DOWNLOAD_BASE="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download"
-
-# ======================
-# 日志工具（全部走 stderr）
-# ======================
-info()  { printf "\033[1;34m[INFO]\033[0m %s\n" "$*" >&2; }
-warn()  { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
-error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; exit 1; }
-
-# ======================
-# 参数解析
-# ======================
-DOWNLOAD_VERSION=""
+download_beta=false
+download_version=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --beta)
+      download_beta=true
+      shift
+      ;;
     --version)
       shift
-      [ -z "$1" ] && error "Missing argument for --version"
-      DOWNLOAD_VERSION="$1"
+      if [ $# -eq 0 ]; then
+        echo "Missing argument for --version"
+        echo "Usage: $0 [--beta] [--version <version>]"
+        exit 1
+      fi
+      download_version="$1"
       shift
       ;;
-    -h|--help)
-      echo "Usage: $0 [--version <version>]"
-      exit 0
-      ;;
     *)
-      error "Unknown argument: $1"
+      echo "Unknown argument: $1"
+      echo "Usage: $0 [--beta] [--version <version>]"
+      exit 1
       ;;
   esac
 done
 
-# ======================
-# 系统检测
-# ======================
-detect_platform() {
-  if command -v dpkg >/dev/null 2>&1; then
-    PKG_SUFFIX=".deb"
-    PKG_INSTALL="dpkg -i"
-    ARCH="$(dpkg --print-architecture)"
-  elif command -v dnf >/dev/null 2>&1; then
-    PKG_SUFFIX=".rpm"
-    PKG_INSTALL="dnf install -y"
-    ARCH="$(uname -m)"
-  elif command -v rpm >/dev/null 2>&1; then
-    PKG_SUFFIX=".rpm"
-    PKG_INSTALL="rpm -i"
-    ARCH="$(uname -m)"
+if command -v pacman >/dev/null 2>&1; then
+  os="linux"
+  arch=$(uname -m)
+  package_suffix=".pkg.tar.zst"
+  package_install="pacman -U --noconfirm"
+elif command -v dpkg >/dev/null 2>&1; then
+  os="linux"
+  arch=$(dpkg --print-architecture)
+  package_suffix=".deb"
+  package_install="dpkg -i"
+elif command -v dnf >/dev/null 2>&1; then
+  os="linux"
+  arch=$(uname -m)
+  package_suffix=".rpm"
+  package_install="dnf install -y"
+elif command -v rpm >/dev/null 2>&1; then
+  os="linux"
+  arch=$(uname -m)
+  package_suffix=".rpm"
+  package_install="rpm -i"
+elif command -v opkg >/dev/null 2>&1; then
+  os="openwrt"
+  . /etc/os-release
+  arch="$OPENWRT_ARCH"
+  package_suffix=".ipk"
+  package_install="opkg update && opkg install"
+else
+  echo "Missing supported package manager."
+  exit 1
+fi
+
+if [ -z "$download_version" ]; then
+  if [ "$download_beta" != "true" ]; then
+    if [ -n "$GITHUB_TOKEN" ]; then
+      latest_release=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/Xiaokailnol/mihomo-template/releases/latest)
+    else
+      latest_release=$(curl -s https://api.github.com/repos/Xiaokailnol/mihomo-template/releases/latest)
+    fi
+    curl_exit_status=$?
+    if [ $curl_exit_status -ne 0 ]; then
+      exit $curl_exit_status
+    fi
+    if [ "$(echo "$latest_release" | grep tag_name | wc -l)" -eq 0 ]; then
+      echo "$latest_release"
+      exit 1
+    fi
+    download_version=$(echo "$latest_release" | grep tag_name | head -n 1 | awk -F: '{print $2}' | sed 's/[", v]//g')
   else
-    error "Unsupported system: no dpkg / rpm / dnf found"
+    if [ -n "$GITHUB_TOKEN" ]; then
+      latest_release=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/Xiaokailnol/mihomo-template/releases)
+    else
+      latest_release=$(curl -s https://api.github.com/repos/Xiaokailnol/mihomo-template/releases)
+    fi
+    curl_exit_status=$?
+    if [ $curl_exit_status -ne 0 ]; then
+      exit $curl_exit_status
+    fi
+    if [ "$(echo "$latest_release" | grep tag_name | wc -l)" -eq 0 ]; then
+      echo "$latest_release"
+      exit 1
+    fi
+    download_version=$(echo "$latest_release" | grep tag_name | head -n 1 | awk -F: '{print $2}' | sed 's/[", v]//g')
   fi
+fi
 
-  case "$ARCH" in
-    x86_64|amd64) ARCH="amd64" ;;
-    aarch64|arm64) ARCH="arm64" ;;
-  esac
+package_name="mihomo_${download_version}_${os}_${arch}${package_suffix}"
+package_url="https://github.com/Xiaokailnol/mihomo-template/releases/download/v${download_version}/${package_name}"
 
-  OS="linux"
-}
+echo "Downloading $package_url"
+if [ -n "$GITHUB_TOKEN" ]; then
+  curl --fail -Lo "$package_name" -H "Authorization: token ${GITHUB_TOKEN}" "$package_url"
+else
+  curl --fail -Lo "$package_name" "$package_url"
+fi
 
-# ======================
-# 获取最新版本（GitHub API）
-# ======================
-fetch_latest_version() {
-  info "Fetching latest release version from GitHub API…"
+curl_exit_status=$?
+if [ $curl_exit_status -ne 0 ]; then
+  exit $curl_exit_status
+fi
 
-  if [ -n "$GITHUB_TOKEN" ]; then
-    RESP="$(curl -fsSL \
-      -H "Authorization: token ${GITHUB_TOKEN}" \
-      "$API_LATEST")" \
-      || error "GitHub API request failed (token)"
-  else
-    RESP="$(curl -fsSL "$API_LATEST")" \
-      || error "GitHub API request failed (rate limited?)"
-  fi
+if command -v sudo >/dev/null 2>&1; then
+  package_install="sudo $package_install"
+fi
 
-  VERSION="$(printf '%s\n' "$RESP" \
-    | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v\?\([^"]*\)".*/\1/p')"
-
-  [ -z "$VERSION" ] && {
-    printf '%s\n' "$RESP" >&2
-    error "Failed to parse tag_name from GitHub API response"
-  }
-
-  # 只输出纯版本号
-  echo "$VERSION"
-}
-
-# ======================
-# 主流程
-# ======================
-main() {
-  detect_platform
-
-  if [ -z "$DOWNLOAD_VERSION" ]; then
-    DOWNLOAD_VERSION="$(fetch_latest_version)"
-  fi
-
-  info "Version   : $DOWNLOAD_VERSION"
-  info "Platform  : $OS"
-  info "Arch      : $ARCH"
-
-  PKG_NAME="${BIN_NAME}-${OS}-${DOWNLOAD_VERSION}-${ARCH}${PKG_SUFFIX}"
-  PKG_URL="${DOWNLOAD_BASE}/v${DOWNLOAD_VERSION}/${PKG_NAME}"
-
-  info "Downloading:"
-  info "  $PKG_URL"
-
-  curl -fL -o "$PKG_NAME" "$PKG_URL" || error "Download failed"
-
-  if command -v sudo >/dev/null 2>&1; then
-    PKG_INSTALL="sudo $PKG_INSTALL"
-  fi
-
-  info "Installing package…"
-  sh -c "$PKG_INSTALL \"$PKG_NAME\""
-
-  info "Cleaning up…"
-  rm -f "$PKG_NAME"
-
-  info "✅ mihomo installed successfully"
-}
-
-main
+echo "$package_install $package_name"
+sh -c "$package_install \"$package_name\""
+rm -f "$package_name"
