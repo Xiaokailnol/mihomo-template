@@ -63,7 +63,7 @@ jobs:
       run: |
         cd mihomo && mkdir -p output
         go env
-        GOOS=linux GOARCH=amd64 go build -v -tags "with_gvisor" -trimpath -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+        GOOS=linux GOARCH=amd64 go build -v -tags "with_gvisor" -trimpath -o output/mihomo -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
 
     - name: Packages DEB
       id: deb
