@@ -25,6 +25,7 @@ jobs:
         arch:
           - amd64
           - arm64
+          - windowst
           - metacubexd
 
     steps:
@@ -90,12 +91,19 @@ jobs:
       run: |
         cd mihomo
         go env
-        go build -v -trimpath -o output/mihomo \
-          -tags "with_gvisor" \
-          -trimpath \
-          -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
-        cp output/mihomo.exe output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
-        zip -r output/mihomo-windows-$VERSION-${{ matrix.arch }}.zip output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
+        if [ "${{ matrix.arch }}" == "amd64" ] || [ "${{ matrix.arch }}" == "arm64" ]; then
+          go build -v -trimpath -o output/mihomo \
+            -tags "with_gvisor" \
+            -trimpath \
+            -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+        elif [ "${{ matrix.arch }}" == "windowst" ]; then
+          go build -v -trimpath -o output/mihomo.exe \
+            -tags "with_gvisor" \
+            -trimpath \
+            -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+          cp output/mihomo.exe output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
+          zip -r output/mihomo-windows-$VERSION-${{ matrix.arch }}.zip output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
+        fi
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: Packages DEB
