@@ -72,8 +72,8 @@ jobs:
           git clone $METACUBEXD_URL -b $METACUBEXD_BRANCH metacubexd
         else
           git clone $MIHOMO_URL -b $MIHOMO_BRANCH mihomo
+          cd mihomo && mkdir output
         fi
-        cd mihomo && mkdir output
         COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
         echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
         COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
