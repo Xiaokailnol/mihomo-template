@@ -18,24 +18,13 @@ on:
       BUILD_DIR:
         required: true
         type: string
-      GPG_KEY_ID:
-        required: true
-        type: string
-      GPG_KEY:
-        required: true
-        type: string
-      GPG_PASSPHRASE:
-        required: true
-        type: string        
+     
 env:
   VERSION: ${{inputs.VERSION}}
   MIHOMO_URL: ${{inputs.MIHOMO_URL}}
   MIHOMO_BRANCH: ${{inputs.MIHOMO_BRANCH}}
   BUILD_TAGS: ${{inputs.BUILD_TAGS}}
   BUILD_DIR: ${{inputs.BUILD_DIR}}
-  GPG_KEY_ID: ${{ inputs.GPG_KEY_ID }}
-  GPG_KEY: ${{ inputs.GPG_KEY }}
-  GPG_PASSPHRASE: ${{ inputs.GPG_PASSPHRASE }}
   
 jobs:
   setup:
@@ -87,13 +76,6 @@ jobs:
           -p "output/mihomo-linux-${VERSION}-amd64.deb" \
           --architecture amd64 \
           mihomo=/usr/bin/mihomo
-        curl -Lo '/tmp/debsigs.diff' 'https://gitlab.com/debsigs/debsigs/-/commit/160138f5de1ec110376d3c807b60a37388bc7c90.diff'
-        sudo patch /usr/bin/debsigs < '/tmp/debsigs.diff'
-        rm -rf $HOME/.gnupg
-        gpg --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --import <<EOF
-        $GPG_KEY
-        EOF
-        debsigs --sign=origin -k $GPG_KEY_ID --gpgopts '--pinentry-mode loopback --passphrase "$GPG_PASSPHRASE"' output/*.deb
 
     - name: Package RPM
       id: rpm
@@ -106,14 +88,6 @@ jobs:
           -p "output/mihomo-linux-${VERSION}-amd64-${VERSION}.rpm" \
           --architecture x86_64 \
           mihomo=/usr/bin/mihomo
-        cat > $HOME/.rpmmacros <<EOF
-        %_gpg_name $GPG_KEY_ID
-        %_gpg_sign_cmd_extra_args --pinentry-mode loopback --passphrase $GPG_PASSPHRASE
-        EOF
-        gpg --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --import <<EOF
-        $GPG_KEY
-        EOF
-        rpmsign --addsign output/*.rpm
 
     - name: Package Pacman
       id: pacman
