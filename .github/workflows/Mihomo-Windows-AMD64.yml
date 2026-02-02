@@ -60,7 +60,7 @@ jobs:
         cd mihomo
         go env
         GOOS=windows GOARCH=amd64 go build -v -tags "with_gvisor" -trimpath -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
-        zip mihomo-windows-${VERSION}-arm64.zip mihomo-windows-${VERSION}-arm64.exe
+        zip mihomo-windows-${VERSION}-amd64.zip mihomo-windows-${VERSION}-amd64.exe
 
     - name: Upload mihomo artifacts
       uses: actions/upload-artifact@v4
