@@ -40,9 +40,6 @@ jobs:
       MIHOMO_BRANCH: Alpha
       BUILD_TAGS: -extldflags --static
       BUILD_DIR: /builder
-      GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-      GPG_KEY: ${{ secrets.GPG_KEY }}
-      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       
   Mihomo-Linux-ARM64:
     needs: setup
