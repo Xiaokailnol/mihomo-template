@@ -25,7 +25,7 @@ jobs:
       # 3. 创建 rule 文件夹并复制指定文件夹
       - name: Copy folders
         run: |
-          mkdir -p rule
+          [ -d rule ] && rm -rf rule; mkdir -p rule
           cp -r tmp_rules/mihomo rule/
           cp -r tmp_rules/singbox rule/
           cp -r tmp_rules/surge rule/
