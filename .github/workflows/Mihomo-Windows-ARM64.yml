@@ -70,7 +70,7 @@ jobs:
     - name: Upload mihomo artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: mihomo_windows_${{ env.VERSION }}
+        name: mihomo_windows_arm64_${{ env.VERSION }}
         path: ${{ env.BUILD_DIR }}/mihomo/*.zip
 
     - name: Create mihomo release
