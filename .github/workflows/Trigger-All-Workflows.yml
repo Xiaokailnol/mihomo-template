@@ -79,3 +79,19 @@ jobs:
       METACUBEXD_URL: https://github.com/MetaCubeX/metacubexd
       METACUBEXD_BRANCH: main
       BUILD_DIR: /builder
+
+  sync_rules:
+    needs:
+      - Mihomo-Linux-AMD64
+      - Mihomo-Linux-ARM64
+      - Mihomo-Windows-AMD64
+      - Mihomo-Windows-ARM64
+      - Mihomo-Metacubexd
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Sync-Rules-Release workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Sync-Rules-Release.yml
+          repo: Xiaokailnol/mihomo-template
+          ref: master
