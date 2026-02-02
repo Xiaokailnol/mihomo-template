@@ -70,8 +70,8 @@ jobs:
     - name: Upload mihomo artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: mihomo_${{ env.VERSION }}_${{ matrix.arch }}
-        path: ${{ env.build_dir }}/mihomo/*.zip
+        name: mihomo_windows_${{ env.VERSION }}
+        path: ${{ env.BUILD_DIR }}/mihomo/*.zip
 
     - name: Create mihomo release
       uses: ncipollo/release-action@v1
@@ -83,4 +83,4 @@ jobs:
         replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: |
-          ${{ env.build_dir }}/mihomo/*.zip
+          ${{ env.BUILD_DIR }}/mihomo/*.zip
