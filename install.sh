@@ -41,15 +41,15 @@ print_warning() {
 }
 
 print_error() {
-    echo -e "  ${RED}✗${NC} $1"
+    echo -e "  ${RED}✗${NC} $1" >&2
 }
 
 print_step() {
-    echo -e "${GREEN}[${WHITE}STEP${GREEN}]${NC} ${BOLD}$1${NC}"
+    echo -e "${GREEN}[${WHITE}STEP${GREEN}]${NC} ${BOLD}$1${NC}" >&2
 }
 
 print_status() {
-    echo -e "${BLUE}[${WHITE}STATUS${BLUE}]${NC} $1"
+    echo -e "${BLUE}[${WHITE}STATUS${BLUE}]${NC} $1" >&2
 }
 
 # ======================
@@ -161,15 +161,16 @@ detect_platform() {
 }
 
 # ======================
-# 获取版本号 (修复版本)
+# 获取版本号 (修复版本 - 主要修复在这里)
 # ======================
 fetch_latest_version() {
-    print_step "Checking for latest release..."
+    # 将进度信息输出到 stderr，避免污染 stdout
+    print_step "Checking for latest release..." >&2
     
     local response
     if [ -n "$GITHUB_TOKEN" ]; then
         if [ $VERBOSE -eq 1 ]; then
-            print_status "Using GitHub token for authentication"
+            print_status "Using GitHub token for authentication" >&2
         fi
         response="$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "$API_LATEST" 2>/dev/null || curl -s "$API_LATEST")"
     else
@@ -177,7 +178,7 @@ fetch_latest_version() {
     fi
     
     if [ -z "$response" ] || echo "$response" | grep -q "API rate limit"; then
-        print_warning "GitHub API may be rate limited, using default version"
+        print_warning "GitHub API may be rate limited, using default version" >&2
         # 如果没有从API获取到版本，可以设置一个默认版本
         echo "latest"
         return 0
@@ -192,14 +193,19 @@ fetch_latest_version() {
     
     if [ -z "$version" ]; then
         if [ $VERBOSE -eq 1 ]; then
-            print_status "Raw API response:"
-            echo "$response" | head -20
+            print_status "Raw API response:" >&2
+            echo "$response" | head -20 >&2
         fi
-        print_error "Failed to parse version from GitHub API"
+        print_error "Failed to parse version from GitHub API" >&2
         exit 1
     fi
     
-    print_info "Latest version: ${YELLOW}v${version}${NC}"
+    print_info "Latest version: ${YELLOW}v${version}${NC}" >&2
+    
+    # 清理版本号，移除所有非版本字符
+    version="$(echo "$version" | tr -cd '0-9.\n')"
+    
+    # 输出纯版本号到 stdout
     echo "$version"
 }
 
@@ -250,20 +256,19 @@ main() {
         print_info "Using specified version: ${YELLOW}v${DOWNLOAD_VERSION}${NC}"
     fi
     
-    # 构造包名和URL
-    PKG_NAME="${BIN_NAME}-${OS}-${DOWNLOAD_VERSION}-${ARCH}${PKG_SUFFIX}"
-    
     # 清理版本号中的换行符和多余空格
     DOWNLOAD_VERSION="$(echo "$DOWNLOAD_VERSION" | tr -d '[:space:]')"
-    PKG_NAME="$(echo "$PKG_NAME" | tr -d '[:space:]')"
-    
-    PKG_URL="${DOWNLOAD_BASE}/v${DOWNLOAD_VERSION}/${PKG_NAME}"
     
     print_separator
     print_status "Installation Summary:"
     print_info "Version:    ${WHITE}v${DOWNLOAD_VERSION}${NC}"
     print_info "System:     ${WHITE}${OS}${NC}"
     print_info "Arch:       ${WHITE}${ARCH}${NC}"
+    
+    # 构造包名和URL
+    PKG_NAME="${BIN_NAME}-${OS}-${DOWNLOAD_VERSION}-${ARCH}${PKG_SUFFIX}"
+    PKG_URL="${DOWNLOAD_BASE}/v${DOWNLOAD_VERSION}/${PKG_NAME}"
+    
     print_info "Package:    ${WHITE}${PKG_NAME}${NC}"
     print_separator
     
