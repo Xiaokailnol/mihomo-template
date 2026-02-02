@@ -17,7 +17,6 @@ on:
         type: string
 
 env:
-  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
   VERSION: ${{inputs.VERSION}}
   MIHOMO_URL: ${{inputs.MIHOMO_URL}}
   MIHOMO_BRANCH: ${{inputs.MIHOMO_BRANCH}}
