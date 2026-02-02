@@ -1,0 +1,10 @@
+name: Mihomo Linux AMD64
+
+on:
+  workflow_call:
+    inputs:
+      VERSION:
+        required: true
+        type: string
+  workflow_dispatch:
+  repository_dispatch:
