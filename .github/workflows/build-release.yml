@@ -25,7 +25,6 @@ jobs:
         arch:
           - amd64
           - arm64
-          - windows
           - metacubexd
 
     steps:
@@ -91,23 +90,20 @@ jobs:
       run: |
         cd mihomo
         go env
-        if [ "${{ matrix.arch }}" == "amd64" ] || [ "${{ matrix.arch }}" == "arm64" ]; then
-          go build -v -trimpath -o output/mihomo \
-            -tags "with_gvisor" \
-            -trimpath \
-            -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
-        elif [ "${{ matrix.arch }}" == "windows" ]; then
-          go build -v -trimpath -o output/mihomo.exe \
-            -tags "with_gvisor" \
-            -trimpath \
-            -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
-          cp output/mihomo.exe output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
-          zip -r output/mihomo-windows-$VERSION-${{ matrix.arch }}.zip output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
-        fi
+        go build -v -trimpath -o output/mihomo \
+          -tags "with_gvisor" \
+          -trimpath \
+          -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+        go build -v -trimpath -o output/mihomo.exe \
+          -tags "with_gvisor" \
+          -trimpath \
+          -ldflags "${BUILD_TAGS} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+        cp output/mihomo.exe output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
+        zip -r output/mihomo-windows-$VERSION-${{ matrix.arch }}.zip output/mihomo-windows-$VERSION-${{ matrix.arch }}.exe
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: Packages DEB
-      if: ${{ matrix.arch != 'metacubexd' && matrix.arch != 'windows' }}
+      if: ${{ matrix.arch != 'metacubexd' }}
       id: deb
       working-directory: /builder
       run: |
@@ -128,7 +124,7 @@ jobs:
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: Package RPM
-      if: ${{ matrix.arch != 'metacubexd' && matrix.arch != 'windows' }}
+      if: ${{ matrix.arch != 'metacubexd' }}
       id: rpm
       working-directory: /builder
       run: |
@@ -150,7 +146,7 @@ jobs:
         echo "status=success" >> ${GITHUB_OUTPUT}
 
     - name: Package Pacman
-      if: ${{ matrix.arch != 'metacubexd' && matrix.arch != 'windows' }}
+      if: ${{ matrix.arch != 'metacubexd' }}
       id: pacman
       working-directory: /builder
       run: |
@@ -201,7 +197,7 @@ jobs:
       with:
         name: mihomo_${{ env.VERSION }}_${{ matrix.arch }}
         path: ${{ env.build_dir }}/metacubexd/compressed-dist.tgz
-
+        
     - name: Create metacubexd release
       if: ${{ matrix.arch == 'metacubexd' }}
       uses: ncipollo/release-action@v1
