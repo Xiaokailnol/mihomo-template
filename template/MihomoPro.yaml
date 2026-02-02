@@ -62,7 +62,7 @@ keep-alive-idle: 600
 
 # 认证配置
 authentication:
-  - mihomo:yyds666
+  - mihomo:password
 skip-auth-prefixes:
   - 192.168.1.0/24
   - 192.168.31.0/24
