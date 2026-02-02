@@ -12,11 +12,11 @@ API_LATEST="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/lat
 DOWNLOAD_BASE="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download"
 
 # ======================
-# 日志工具
+# 日志工具（全部走 stderr）
 # ======================
-info()  { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
-warn()  { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
-error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*"; exit 1; }
+info()  { printf "\033[1;34m[INFO]\033[0m %s\n" "$*" >&2; }
+warn()  { printf "\033[1;33m[WARN]\033[0m %s\n" "$*" >&2; }
+error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; exit 1; }
 
 # ======================
 # 参数解析
@@ -70,25 +70,30 @@ detect_platform() {
 }
 
 # ======================
-# 获取最新版本
+# 获取最新版本（GitHub API）
 # ======================
 fetch_latest_version() {
-  info "Fetching latest release version from GitHub…"
+  info "Fetching latest release version from GitHub API…"
 
   if [ -n "$GITHUB_TOKEN" ]; then
-    RESP="$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "$API_LATEST")"
+    RESP="$(curl -fsSL \
+      -H "Authorization: token ${GITHUB_TOKEN}" \
+      "$API_LATEST")" \
+      || error "GitHub API request failed (token)"
   else
-    RESP="$(curl -s "$API_LATEST")"
+    RESP="$(curl -fsSL "$API_LATEST")" \
+      || error "GitHub API request failed (rate limited?)"
   fi
 
-  VERSION="$(echo "$RESP" \
+  VERSION="$(printf '%s\n' "$RESP" \
     | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v\?\([^"]*\)".*/\1/p')"
 
   [ -z "$VERSION" ] && {
-    echo "$RESP"
-    error "Failed to parse tag_name from GitHub API"
+    printf '%s\n' "$RESP" >&2
+    error "Failed to parse tag_name from GitHub API response"
   }
 
+  # 只输出纯版本号
   echo "$VERSION"
 }
 
@@ -112,7 +117,7 @@ main() {
   info "Downloading:"
   info "  $PKG_URL"
 
-  curl --fail -L -o "$PKG_NAME" "$PKG_URL" || error "Download failed"
+  curl -fL -o "$PKG_NAME" "$PKG_URL" || error "Download failed"
 
   if command -v sudo >/dev/null 2>&1; then
     PKG_INSTALL="sudo $PKG_INSTALL"
