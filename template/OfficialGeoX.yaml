@@ -9,7 +9,7 @@
 # 注意：请提供您的机场订阅链接，每个链接一行，并为每个机场命名，可自定义
 proxy-providers:
   provider1:
-    url: ""
+    url: "优质订阅源地址"
     type: http
     interval: 86400
     health-check: {enable: true,url: "https://www.gstatic.com/generate_204", interval: 300}
@@ -17,7 +17,7 @@ proxy-providers:
       additional-prefix: "[provider1]"
 
   provider2:
-    url: ""
+    url: "备用订阅源地址"
     type: http
     interval: 86400
     health-check: {enable: true,url: "https://www.gstatic.com/generate_204",interval: 300}
