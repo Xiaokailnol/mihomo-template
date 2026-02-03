@@ -105,8 +105,8 @@ jobs:
     uses: ./.github/workflows/Mihomo-Zashboard.yml
     with:
       VERSION: ${{ needs.setup.outputs.VERSION }}
-      METACUBEXD_URL: https://gitea.kejizero.xyz/zhao/zashboard
-      METACUBEXD_BRANCH: main
+      ZASHBOARD_URL: https://gitea.kejizero.xyz/zhao/zashboard
+      ZASHBOARD_BRANCH: main
       BUILD_DIR: /builder
       
   sync_template:
