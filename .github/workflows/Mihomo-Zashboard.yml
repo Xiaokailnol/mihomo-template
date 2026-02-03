@@ -15,6 +15,9 @@ on:
       BUILD_DIR:
         required: true
         type: string
+    secrets:
+      PAT_TOKEN:
+        required: true
         
 env:
   VERSION: ${{inputs.VERSION}}
