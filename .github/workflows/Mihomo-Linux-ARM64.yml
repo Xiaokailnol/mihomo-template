@@ -85,7 +85,7 @@ jobs:
         fpm -s dir -t rpm \
           -n mihomo \
           -v "$VERSION" \
-          -p "output/mihomo-linux-${VERSION}-arm64-${VERSION}.rpm" \
+          -p "output/mihomo-linux-${VERSION}-arm64.rpm" \
           --architecture aarch64 \
           output/mihomo=/usr/bin/mihomo
 
@@ -97,7 +97,7 @@ jobs:
         fpm -s dir -t pacman \
           -n mihomo \
           -v "$VERSION" \
-          -p "output/mihomo-linux-${VERSION}-arm64-${VERSION}.pkg.tar.zst" \
+          -p "output/mihomo-linux-${VERSION}-arm64.pkg.tar.zst" \
           --architecture aarch64 \
           output/mihomo=/usr/bin/mihomo
 
