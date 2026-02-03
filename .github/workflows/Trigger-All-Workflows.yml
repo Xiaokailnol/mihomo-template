@@ -126,7 +126,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v6
       
-    - name: Update Metacubexd version File
+    - name: Update Zashboard version File
       working-directory: ${{ github.workspace }}
       id: file
       run: |      
