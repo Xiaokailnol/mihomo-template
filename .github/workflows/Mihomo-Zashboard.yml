@@ -68,7 +68,7 @@ jobs:
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.PAT_TOKEN }}
-        publish_dir: ./dist
+        publish_dir: ${{ env.BUILD_DIR }}/zashboard/dist
         publish_branch: gh-pages-zashboard
           
     - name: Upload zashboard artifacts
