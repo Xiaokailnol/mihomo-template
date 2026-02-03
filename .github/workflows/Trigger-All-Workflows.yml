@@ -106,7 +106,7 @@ jobs:
     with:
       VERSION: ${{ needs.setup.outputs.VERSION }}
       ZASHBOARD_URL: https://gitea.kejizero.xyz/zhao/zashboard
-      ZASHBOARD_BRANCH: main
+      ZASHBOARD_BRANCH: master
       BUILD_DIR: /builder
       
   sync_template:
