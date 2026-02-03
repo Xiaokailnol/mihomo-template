@@ -60,13 +60,13 @@ jobs:
         sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" package.json
         pnpm install
         NUXT_APP_BASE_URL='./' pnpm generate
-        zip -r metacubexd-dist.zip .output/public
+        ( cd .output/public && zip -r ../../metacubexd-dist.zip . -x '*.zip' )
 
     - name: Upload metacubexd artifacts
       uses: actions/upload-artifact@v4
       with:
         name: mihomo_metacubexd_${{ env.VERSION }}
-        path: ${{ env.BUILD_DIR }}/metacubexd/metacubexd-dist.zip
+        path: ${{ env.BUILD_DIR }}/metacubexd/output/public/metacubexd-dist.zip
 
     - name: Create metacubexd release
       uses: ncipollo/release-action@v1
@@ -78,4 +78,4 @@ jobs:
         replacesArtifacts: true
         token: ${{ secrets.GITHUB_TOKEN }}
         artifacts: |
-          ${{ env.BUILD_DIR }}/metacubexd/metacubexd-dist.zip
+          ${{ env.BUILD_DIR }}/metacubexd/output/public/metacubexd-dist.zip
