@@ -50,6 +50,12 @@ jobs:
     - name: Build System Setup
       uses: Xiaokailnol/actions@mihomo-build-setup
 
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r28
+        local-cache: true
+    
     - name: Clone Source Code
       working-directory: /builder
       id: clone
