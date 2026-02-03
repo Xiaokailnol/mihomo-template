@@ -74,8 +74,8 @@ experimental:
   quic-go-disable-gso: true  
      
 # 管理面板配置
-external-ui-url: https://github.com/Xiaokailnol/mihomo-template/releases/download/v1.1.8/compressed-dist.tgz
-external-ui-name: metacubexd
+external-ui-url: https://github.com/Xiaokailnol/mihomo-template/releases/download/v1.1.8/zashboard-dist.tgz
+external-ui-name: zashboard
 external-ui: ui
 external-controller: 127.0.0.1:9090
 secret: password
