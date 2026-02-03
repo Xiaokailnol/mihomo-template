@@ -1,0 +1,98 @@
+name: Mihomo Android AMD64
+
+on:
+  workflow_call:
+    inputs:
+      VERSION:
+        required: true
+        type: string
+      MIHOMO_URL:
+        required: true
+        type: string
+      MIHOMO_BRANCH:
+        required: true
+        type: string
+      BUILD_TAGS:
+        required: true
+        type: string
+      BUILD_DIR:
+        required: true
+        type: string
+        
+env:
+  VERSION: ${{inputs.VERSION}}
+  MIHOMO_URL: ${{inputs.MIHOMO_URL}}
+  MIHOMO_BRANCH: ${{inputs.MIHOMO_BRANCH}}
+  BUILD_TAGS: ${{inputs.BUILD_TAGS}}
+  BUILD_DIR: ${{inputs.BUILD_DIR}}
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Show system info
+      uses: Xiaokailnol/actions@show-system
+
+    - name: Free disk space
+      uses: Xiaokailnol/actions@free-disk
+      with:
+        build-mount-path: /builder
+
+    - name: Build System Setup
+      uses: Xiaokailnol/actions@mihomo-build-setup
+
+    - name: Setup NDK
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r29-beta1
+
+    - name: Set NDK path
+      run: |
+        echo "CC=${{steps.setup-ndk.outputs.ndk-path}}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android34-clang" >> $GITHUB_ENV
+        echo "CGO_ENABLED=1" >> $GITHUB_ENV
+        echo "BUILDTAG=" >> $GITHUB_ENV
+        
+    - name: Clone Source Code
+      working-directory: /builder
+      id: clone
+      run: |
+        git clone $MIHOMO_URL -b $MIHOMO_BRANCH mihomo
+        echo "BUILDTIME=$(date)" >> $GITHUB_ENV
+
+    - name: Compile Packages
+      id: compile
+      working-directory: /builder
+      run: |
+        cd mihomo
+        go env
+        GOOS=android GOARCH=amd64 go build -v -tags "with_gvisor" -trimpath -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+        mv mihomo mihomo-android-${VERSION}-amd64
+        gzip -c mihomo-android-${VERSION}-amd64 > mihomo-android-${VERSION}-amd64.gz
+
+    - name: Upload mihomo artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mihomo_android_amd64_${{ env.VERSION }}
+        path: ${{ env.BUILD_DIR }}/mihomo/*.gz
+
+    - name: Create mihomo release
+      uses: ncipollo/release-action@v1
+      with:
+        name: v${{ env.VERSION }}
+        tag: v${{ env.VERSION }}
+        commit: master
+        allowUpdates: true
+        replacesArtifacts: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: |
+          ${{ env.BUILD_DIR }}/mihomo/*.gz
