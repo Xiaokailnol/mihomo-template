@@ -106,6 +106,8 @@ jobs:
       - Mihomo-Linux-ARM64
       - Mihomo-Windows-AMD64
       - Mihomo-Windows-ARM64
+      - Mihomo-Android-AMD64
+      - Mihomo-Android-ARM64
       - Mihomo-Metacubexd
     runs-on: ubuntu-latest
     steps:
